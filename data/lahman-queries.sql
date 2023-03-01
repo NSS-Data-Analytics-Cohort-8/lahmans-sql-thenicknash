@@ -21,9 +21,9 @@ with shortest_player as (
 	limit 1
 )
 select
-	shortest_player.namefirst,
-	shortest_player.namelast,
-	shortest_player.height,
+	shortest_player.namefirst as first_name,
+	shortest_player.namelast as last_name,
+	shortest_player.height as height_inches,
 	t.name as team_name,
 	count(a.*) as number_of_appearances
 from shortest_player
@@ -38,10 +38,42 @@ group by
 	shortest_player.height,
 	t.name;
 
--- Eddie Gaedel at 43 inches is the shortest player. He appeared in only 1 game, and he played for the St. Louis Browns.
+-- Eddie Gaedel, standing at 43 inches, was the shortest player. He appeared in only 1 game, and he played for the St. Louis Browns.
 
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
-	
+
+select count(*) from schools;
+select * from schools where schoolname = 'Vanderbilt University';
+
+with vanderbilt_players as (
+	select
+		distinct p.playerid,
+		p.namefirst,
+		p.namelast
+	from collegeplaying as cp
+	inner join schools as s
+	on cp.schoolid = s.schoolid
+	inner join people as p
+	on cp.playerid = p.playerid
+	where s.schoolid = (
+		select schoolid
+		from schools
+		where schoolname = 'Vanderbilt University'
+	)
+)
+select
+	vanderbilt_players.namefirst as first_name,
+	vanderbilt_players.namelast as last_name,
+	coalesce(sum(salary)::numeric::money, 0::money) as total_salary_earned
+from vanderbilt_players
+left join salaries as s
+on vanderbilt_players.playerid = s.playerid
+group by
+	first_name,
+	last_name
+order by total_salary_earned desc;
+
+-- David Price has earned the most money ($81,851,296.00) compared to the other Vanderbilt University graduates in the majors.
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
    
