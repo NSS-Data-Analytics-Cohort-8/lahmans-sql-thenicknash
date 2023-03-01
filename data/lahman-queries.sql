@@ -7,7 +7,38 @@ from homegames;
 -- The games range from 1871-2016.
 
 -- 2. Find the name and height of the shortest player in the database. How many games did he play in? What is the name of the team for which he played?
-   
+with shortest_player as (
+	select
+		playerid,
+		namefirst,
+		namelast,
+		height,
+		debut,
+		finalgame,
+		date_part('year', finalgame::date) as year_played
+	from people
+	order by height
+	limit 1
+)
+select
+	shortest_player.namefirst,
+	shortest_player.namelast,
+	shortest_player.height,
+	t.name as team_name,
+	count(a.*) as number_of_appearances
+from shortest_player
+inner join appearances as a
+on shortest_player.playerid = a.playerid
+inner join teams as t
+on a.teamid = t.teamid
+where t.yearid = shortest_player.year_played
+group by
+	shortest_player.namefirst,
+	shortest_player.namelast,
+	shortest_player.height,
+	t.name;
+
+-- Eddie Gaedel at 43 inches is the shortest player. He appeared in only 1 game, and he played for the St. Louis Browns.
 
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
 	
