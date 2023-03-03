@@ -171,7 +171,18 @@ order by decade;
 -- Both strikeouts and homeruns are increasing over time; however, strikeouts appear to be still on the rise while homeruns appear to be starting to stagnate or drop based on recent decades.
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
-	
+
+select
+	p.namefirst,
+	p.namelast,
+	round((b.sb::numeric(10,2) / (b.sb::numeric(10,2) + b.cs::numeric(10,2))) * 100, 2) as steal_success_rate
+from batting as b
+inner join people as p
+on b.playerid = p.playerid
+where (b.sb + b.cs) >= 20
+and b.yearid = 2016
+order by steal_success_rate desc
+limit 1;
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
