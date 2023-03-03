@@ -86,85 +86,27 @@ group by position_group;
    
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
 
-with total_strikeouts_per_year as (
-	select
-		yearid,
-		sum(so) as total_strikeouts
-	from pitching
-	group by yearid
-	order by yearid
-),
-total_games_played_per_year as (
-	select
-		yearid,
-		sum(g) as games_played
-	from teams
-	group by yearid
-	order by yearid
-)
 select
 	case
-		when total_games_played_per_year.yearid between 1870 and 1879 then '1870s'
-		when total_games_played_per_year.yearid between 1880 and 1889 then '1880s'
-		when total_games_played_per_year.yearid between 1890 and 1899 then '1890s'
-		when total_games_played_per_year.yearid between 1900 and 1909 then '1900s'
-		when total_games_played_per_year.yearid between 1910 and 1919 then '1910s'
-		when total_games_played_per_year.yearid between 1920 and 1929 then '1920s'
-		when total_games_played_per_year.yearid between 1930 and 1939 then '1930s'
-		when total_games_played_per_year.yearid between 1940 and 1949 then '1940s'
-		when total_games_played_per_year.yearid between 1950 and 1959 then '1950s'
-		when total_games_played_per_year.yearid between 1960 and 1969 then '1960s'
-		when total_games_played_per_year.yearid between 1970 and 1979 then '1970s'
-		when total_games_played_per_year.yearid between 1980 and 1989 then '1980s'
-		when total_games_played_per_year.yearid between 1990 and 1999 then '1990s'
-		when total_games_played_per_year.yearid between 2000 and 2009 then '2000s'
-		when total_games_played_per_year.yearid between 2010 and 2019 then '2010s'
+		when yearid between 1870 and 1879 then '1870s'
+		when yearid between 1880 and 1889 then '1880s'
+		when yearid between 1890 and 1899 then '1890s'
+		when yearid between 1900 and 1909 then '1900s'
+		when yearid between 1910 and 1919 then '1910s'
+		when yearid between 1920 and 1929 then '1920s'
+		when yearid between 1930 and 1939 then '1930s'
+		when yearid between 1940 and 1949 then '1940s'
+		when yearid between 1950 and 1959 then '1950s'
+		when yearid between 1960 and 1969 then '1960s'
+		when yearid between 1970 and 1979 then '1970s'
+		when yearid between 1980 and 1989 then '1980s'
+		when yearid between 1990 and 1999 then '1990s'
+		when yearid between 2000 and 2009 then '2000s'
+		when yearid between 2010 and 2019 then '2010s'
 	end as decade,
-	round(avg(total_strikeouts_per_year.total_strikeouts / total_games_played_per_year.games_played), 2) as strikeouts_per_game
-from total_games_played_per_year
-inner join total_strikeouts_per_year
-on total_games_played_per_year.yearid = total_strikeouts_per_year.yearid
-group by decade
-order by decade;
-
-with total_homeruns_per_year as (
-	select
-		yearid,
-		sum(hr) as total_homeruns
-	from pitching
-	group by yearid
-	order by yearid
-),
-total_games_played_per_year as (
-	select
-		yearid,
-		sum(g) as games_played
-	from teams
-	group by yearid
-	order by yearid
-)
-select
-	case
-		when total_games_played_per_year.yearid between 1870 and 1879 then '1870s'
-		when total_games_played_per_year.yearid between 1880 and 1889 then '1880s'
-		when total_games_played_per_year.yearid between 1890 and 1899 then '1890s'
-		when total_games_played_per_year.yearid between 1900 and 1909 then '1900s'
-		when total_games_played_per_year.yearid between 1910 and 1919 then '1910s'
-		when total_games_played_per_year.yearid between 1920 and 1929 then '1920s'
-		when total_games_played_per_year.yearid between 1930 and 1939 then '1930s'
-		when total_games_played_per_year.yearid between 1940 and 1949 then '1940s'
-		when total_games_played_per_year.yearid between 1950 and 1959 then '1950s'
-		when total_games_played_per_year.yearid between 1960 and 1969 then '1960s'
-		when total_games_played_per_year.yearid between 1970 and 1979 then '1970s'
-		when total_games_played_per_year.yearid between 1980 and 1989 then '1980s'
-		when total_games_played_per_year.yearid between 1990 and 1999 then '1990s'
-		when total_games_played_per_year.yearid between 2000 and 2009 then '2000s'
-		when total_games_played_per_year.yearid between 2010 and 2019 then '2010s'
-	end as decade,
-	round(avg(total_homeruns_per_year.total_homeruns / total_games_played_per_year.games_played), 2) as homeruns_per_game
-from total_games_played_per_year
-inner join total_homeruns_per_year
-on total_games_played_per_year.yearid = total_homeruns_per_year.yearid
+	round(sum(so)::numeric(10,2) / (sum(g)::numeric(10,2) / 2), 2) as strikeouts_per_game,
+	round(sum(hr)::numeric(10,2) / (sum(g)::numeric(10,2) / 2), 2) as homeruns_per_game
+from teams
 group by decade
 order by decade;
 
@@ -186,6 +128,43 @@ limit 1;
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
+select
+	teamid,
+	name as team_name,
+	yearid,
+	w as wins
+from teams
+where yearid between 1970 and 2016
+and (
+	wswin is null
+	or wswin = 'N'
+)
+order by w desc
+limit 1;
+
+select
+	teamid,
+	name as team_name,
+	yearid,
+	w as wins
+from teams
+where yearid between 1970 and 2016
+and yearid <> 1981
+and wswin = 'Y'
+order by w
+limit 1;
+
+-- Retrieve the team that won the most games and the team that won the world series grouped by year
+select
+	yearid,
+	teamid
+from teams
+where yearid between 1970 and 2016
+order by yearid;
+
+-- The 2001 Seattle Mariners won the most games (116) without winning the World Series between 1970-2016.
+-- The 1981 LA Dodgers won the WS with the smallest number of wins due to the 1981 MLB strike that resulted in cutting regular season games.
+-- After removing the 1981 season from the equation, the 2006 St. Louis Cardinals won only 83 games en route to a World Series victory.
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
