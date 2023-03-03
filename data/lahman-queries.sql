@@ -42,9 +42,6 @@ group by
 
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
 
-select count(*) from schools;
-select * from schools where schoolname = 'Vanderbilt University';
-
 with vanderbilt_players as (
 	select
 		distinct p.playerid,
@@ -76,9 +73,20 @@ order by total_salary_earned desc;
 -- David Price has earned the most money ($81,851,296.00) compared to the other Vanderbilt University graduates in the majors.
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
+
+select
+	case
+		when pos = 'OF' then 'Outfield'
+		when pos in ('SS', '1B', '2B', '3B') then 'Infield'
+		when pos in ('P', 'C') then 'Battery'
+	end as position_group,
+	sum(po) as putouts_by_position_group
+from fielding
+group by position_group;
    
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
-   
+
+
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 	
