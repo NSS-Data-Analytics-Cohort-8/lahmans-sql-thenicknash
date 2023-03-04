@@ -76,14 +76,15 @@ order by total_salary_earned desc;
 
 select
 	case
-		when pos = 'OF' then 'Outfield'
+		when pos in ('OF') then 'Outfield'
 		when pos in ('SS', '1B', '2B', '3B') then 'Infield'
 		when pos in ('P', 'C') then 'Battery'
 	end as position_group,
 	sum(po) as putouts_by_position_group
 from fielding
+where yearid = 2016
 group by position_group;
-   
+  
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
 
 select
@@ -104,9 +105,11 @@ select
 		when yearid between 2000 and 2009 then '2000s'
 		when yearid between 2010 and 2019 then '2010s'
 	end as decade,
+-- 	concat(floor(yearID/10)*10,'s')
 	round(sum(so)::numeric(10,2) / (sum(g)::numeric(10,2) / 2), 2) as strikeouts_per_game,
 	round(sum(hr)::numeric(10,2) / (sum(g)::numeric(10,2) / 2), 2) as homeruns_per_game
 from teams
+where yearid >= '1920'
 group by decade
 order by decade;
 
@@ -125,6 +128,8 @@ where (b.sb + b.cs) >= 20
 and b.yearid = 2016
 order by steal_success_rate desc
 limit 1;
+
+-- Chris Owings!
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
@@ -154,6 +159,8 @@ and wswin = 'Y'
 order by w
 limit 1;
 
+-- Look at win percentage - 26.67 should be 26.1
+
 select
 	sum(did_ws_winner_win_most_games) as number_of_times_winningest_team_won_ws,
 	round((sum(did_ws_winner_win_most_games)::numeric / count(*)::numeric) * 100, 2) as winningest_team_win_ws_percentage
@@ -172,8 +179,10 @@ from (
 			yearid,
 			w
 		from teams
-		where yearid between 1970 and 2016
-		and yearid <> 1981
+		where (
+			yearid between 1970 and 1980
+			or yearid between 1982 and 2016
+		)
 		order by yearid, w desc
 	) as teams_with_most_wins_per_year
 	inner join (
@@ -182,11 +191,34 @@ from (
 			yearid,
 			wswin
 		from teams
-		where yearid between 1970 and 2016
+		where (
+			yearid between 1970 and 1980
+			or yearid between 1982 and 2016
+		)
 		and wswin = 'Y'
 	) as team_that_won_ws
 	on teams_with_most_wins_per_year.yearid = team_that_won_ws.yearid
 ) as v_winning_teams;
+
+
+-- 7 EXAMPLE 
+WITH cte as (SELECT name, yearid, w, WSwin
+				FROM teams
+				WHERE w IN (SELECT MAX(w) OVER (PARTITION BY yearid) as w
+							FROM teams as sub
+							WHERE (yearid BETWEEN '1970' AND '1980' OR yearid BETWEEN '1982' AND '2016') 
+							AND teams.yearid = sub.yearid))
+			 
+SELECT 
+	COUNT(*) as best_team_ws, 
+	CONCAT(ROUND((100 * COUNT(*)::float / (SELECT COUNT( DISTINCT yearid)
+											FROM teams
+											WHERE (yearid BETWEEN '1970' AND '1980' 
+												   OR yearid BETWEEN '1982' AND '2016'))::float)::numeric, 1),'%') 
+											as pct_ws_highest_w
+FROM cte
+WHERE wswin = 'Y';
+
 
 -- The 2001 Seattle Mariners won the most games (116) without winning the World Series between 1970-2016.
 -- The 1981 LA Dodgers won the WS with the smallest number of wins due to the 1981 MLB strike that resulted in cutting regular season games.
@@ -268,3 +300,34 @@ order by am.yearid;
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
+-- This retrieves each player's career high in homeruns
+select
+	distinct playerid,
+	max(hr) over (partition by playerid) as homerun_career_high
+from batting
+order by homerun_career_high desc;
+
+-- See what players have played in the league for at least 10 years
+-- TODO: refine results to not include players who played for multiple teams in 1 season
+select
+	playerid,
+	count(*) as number_of_years_played
+from appearances
+group by playerid
+having count(*) > 10
+order by number_of_years_played desc;
+
+
+select * from appearances where playerid = 'mcguide01';
+select * from people where playerid = 'henderi01';
+
+
+-- main query
+with player_career_high_hr as (
+	select
+		distinct playerid,
+		max(hr) over (partition by playerid) as homerun_career_high
+	from batting
+)
+select *
+from player_career_high_hr as pchh
