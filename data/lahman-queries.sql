@@ -154,17 +154,44 @@ and wswin = 'Y'
 order by w
 limit 1;
 
--- Retrieve the team that won the most games and the team that won the world series grouped by year
 select
-	yearid,
-	teamid
-from teams
-where yearid between 1970 and 2016
-order by yearid;
+	sum(did_ws_winner_win_most_games) as number_of_times_winningest_team_won_ws,
+	round((sum(did_ws_winner_win_most_games)::numeric / count(*)::numeric) * 100, 2) as winningest_team_win_ws_percentage
+from (
+	select
+		teams_with_most_wins_per_year.yearid,
+		teams_with_most_wins_per_year.teamid as team_with_most_wins,
+		team_that_won_ws.teamid as team_that_won_ws,
+		case
+			when teams_with_most_wins_per_year.teamid = team_that_won_ws.teamid then 1 else 0
+		end as did_ws_winner_win_most_games
+	from (
+		select
+			distinct on (yearid)
+			teamid,
+			yearid,
+			w
+		from teams
+		where yearid between 1970 and 2016
+		and yearid <> 1981
+		order by yearid, w desc
+	) as teams_with_most_wins_per_year
+	inner join (
+		select
+			teamid,
+			yearid,
+			wswin
+		from teams
+		where yearid between 1970 and 2016
+		and wswin = 'Y'
+	) as team_that_won_ws
+	on teams_with_most_wins_per_year.yearid = team_that_won_ws.yearid
+) as v_winning_teams;
 
 -- The 2001 Seattle Mariners won the most games (116) without winning the World Series between 1970-2016.
 -- The 1981 LA Dodgers won the WS with the smallest number of wins due to the 1981 MLB strike that resulted in cutting regular season games.
 -- After removing the 1981 season from the equation, the 2006 St. Louis Cardinals won only 83 games en route to a World Series victory.
+-- 12 times from 1970 to 2016 the winningest team won the World Series in the same season. This comes out to 26.67% of the time.
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
