@@ -372,3 +372,67 @@ from (
 ) as twas;
 
 -- There is a 0.342 correlation between a team's wins and total salary, so I would call this a low-moderate correlation.
+
+
+-- In this question, you will explore the connection between number of wins and attendance.
+
+-- Does there appear to be any correlation between attendance at home games and number of wins?
+-- Do teams that win the world series see a boost in attendance the following year?
+-- What about teams that made the playoffs? Making the playoffs means either being a division winner or a wild card winner.
+select corr(waa.num_of_wins, waa.total_attendance) as correlation_coefficient_wins_and_attendance
+from (
+	select
+		yearid,
+		teamid,
+		sum(w) as num_of_wins,
+		sum(attendance) as total_attendance
+	from teams
+	where attendance is not null
+	group by yearid, teamid
+	order by yearid, teamid
+) as waa;
+
+-- There is a 0.3990 correlation, essentially .4. This is a low-moderate correlation between number of wins and attendance.
+
+-- Finding difference in attendance for WS winners the following year
+with teams_that_won_ws as (
+	select
+		yearid,
+		teamid,
+		w,
+		attendance
+	from teams
+	where wswin = 'Y'
+	and attendance is not null
+	order by yearid
+)
+select floor(avg(t.attendance - ttww.attendance)) as attendance_diff
+from teams_that_won_ws as ttww
+inner join teams as t
+on ttww.yearid + 1 = t.yearid
+and ttww.teamid = t.teamid;
+
+-- There is an average increase of 16,482 in attendance after a team wins the World Series the following year.
+
+-- Finding difference in attendance for teams that made the playoffs
+with teams_that_made_playoffs as (
+	select
+		yearid,
+		teamid,
+		w,
+		attendance
+	from teams
+	where (
+		divwin = 'Y'
+		or wcwin = 'Y'
+	)
+	and attendance is not null
+	order by yearid
+)
+select floor(avg(t.attendance - ttmp.attendance)) as attendance_diff
+from teams_that_made_playoffs as ttmp
+inner join teams as t
+on ttmp.yearid + 1 = t.yearid
+and ttmp.teamid = t.teamid;
+
+-- There is an average increase of 50,289 in attendance after a team wins the World Series the following year.
