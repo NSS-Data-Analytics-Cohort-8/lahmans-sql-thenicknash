@@ -275,8 +275,7 @@ with managers_won_both_league_awards as (
 )
 select
 	am.yearid,
-	p.namefirst,
-	p.namelast,
+	concat(p.namegiven, ' ', p.namelast),
 	v_teams.name as team_name
 from managers_won_both_league_awards as mwbla
 inner join people as p
@@ -300,34 +299,76 @@ order by am.yearid;
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
--- This retrieves each player's career high in homeruns
-select
-	distinct playerid,
-	max(hr) over (partition by playerid) as homerun_career_high
-from batting
-order by homerun_career_high desc;
+-- Jordan's query provided the best data
+WITH cte as (
+	SELECT playerid, yearid, hrs
+	FROM (
+		SELECT playerid, yearid, SUM(hr) as hrs
+		FROM batting
+		GROUP BY playerid, yearid
+	) as sub
+	WHERE hrs in (
+		SELECT MAX(hrs) OVER (PARTITION BY playerid)
+		FROM (
+			SELECT
+				playerid,
+				yearid, 
+				SUM(hr) as hrs
+			FROM batting as bb
+			GROUP BY playerid, yearid
+		) as bsub
+		WHERE bsub.playerid = sub.playerid
+	) 
+	AND hrs >= 1
+	AND playerid IN (
+		SELECT playerid
+		FROM batting
+		GROUP BY playerid
+		HAVING COUNT(DISTINCT yearid) >= 10
+	)
+)		
+SELECT CONCAT(p.namefirst, ' ', p.namelast), hrs
+FROM cte
+INNER JOIN people as p
+USING (playerid)
+WHERE yearid = '2016'
+ORDER BY hrs DESC;
 
--- See what players have played in the league for at least 10 years
--- TODO: refine results to not include players who played for multiple teams in 1 season
-select
-	playerid,
-	count(*) as number_of_years_played
-from appearances
-group by playerid
-having count(*) > 10
-order by number_of_years_played desc;
 
+-- Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question.
+-- As you do this analysis, keep in mind that salaries across the whole league tend to increase together,
+-- so you may want to look on a year-by-year basis.
 
-select * from appearances where playerid = 'mcguide01';
-select * from people where playerid = 'henderi01';
-
-
--- main query
-with player_career_high_hr as (
+-- MAIN QUERY
+select corr(twas.wins, twas.total_team_salary) as correlation_coefficient_wins_and_salary
+from (
 	select
-		distinct playerid,
-		max(hr) over (partition by playerid) as homerun_career_high
-	from batting
-)
-select *
-from player_career_high_hr as pchh
+		team_wins.yearid,
+		team_wins.teamid,
+		team_wins.wins,
+		team_salary.total_team_salary
+	from (
+		select
+			yearid,
+			teamid,
+			sum(w) as wins
+		from teams
+		where yearid >= 2000
+		group by teamid, yearid
+		order by yearid
+	) as team_wins
+	inner join (
+		select
+			yearid,
+			teamid,
+			sum(salary) as total_team_salary
+		from salaries
+		where yearid >= 2000
+		group by yearid, teamid
+		order by yearid
+	) as team_salary
+	on team_wins.yearid = team_salary.yearid
+	and team_wins.teamid = team_salary.teamid
+) as twas;
+
+-- There is a 0.342 correlation between a team's wins and total salary, so I would call this a low-moderate correlation.
