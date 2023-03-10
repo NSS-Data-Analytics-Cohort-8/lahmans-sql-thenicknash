@@ -21,8 +21,7 @@ with shortest_player as (
 	limit 1
 )
 select
-	shortest_player.namefirst as first_name,
-	shortest_player.namelast as last_name,
+	concat(shortest_player.namefirst, ' ', shortest_player.namelast) as full_name,
 	shortest_player.height as height_inches,
 	t.name as team_name,
 	count(a.*) as number_of_appearances
@@ -59,15 +58,15 @@ with vanderbilt_players as (
 	)
 )
 select
-	vanderbilt_players.namefirst as first_name,
+	concat(vanderbilt_players.namefirst, ' ', vanderbilt_players.namelast) as player_name,
 	vanderbilt_players.namelast as last_name,
 	coalesce(sum(salary)::numeric::money, 0::money) as total_salary_earned
 from vanderbilt_players
-left join salaries as s
+inner join salaries as s
 on vanderbilt_players.playerid = s.playerid
 group by
-	first_name,
-	last_name
+	vanderbilt_players.namefirst,
+	vanderbilt_players.namelast
 order by total_salary_earned desc;
 
 -- David Price has earned the most money ($81,851,296.00) compared to the other Vanderbilt University graduates in the majors.
@@ -105,7 +104,6 @@ select
 		when yearid between 2000 and 2009 then '2000s'
 		when yearid between 2010 and 2019 then '2010s'
 	end as decade,
--- 	concat(floor(yearID/10)*10,'s')
 	round(sum(so)::numeric(10,2) / (sum(g)::numeric(10,2) / 2), 2) as strikeouts_per_game,
 	round(sum(hr)::numeric(10,2) / (sum(g)::numeric(10,2) / 2), 2) as homeruns_per_game
 from teams
@@ -118,9 +116,8 @@ order by decade;
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 
 select
-	p.namefirst,
-	p.namelast,
-	round((b.sb::numeric(10,2) / (b.sb::numeric(10,2) + b.cs::numeric(10,2))) * 100, 2) as steal_success_rate
+	concat(p.namefirst, ' ', p.namelast),
+	concat(round((b.sb::numeric(10,2) / (b.sb::numeric(10,2) + b.cs::numeric(10,2))) * 100, 2), ' ', '%')::text as steal_success_rate
 from batting as b
 inner join people as p
 on b.playerid = p.playerid
